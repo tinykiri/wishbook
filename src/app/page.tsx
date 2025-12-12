@@ -84,13 +84,19 @@ export default function Home() {
     const randomRotation = Math.random() * 6 - 3;
     const randomSeed = Math.floor(Math.random() * 1000);
 
+    // NEW: Random start position near the top
+    const startX = Math.random() * 200;
+    const startY = Math.random() * 100;
+
     const { error } = await supabase.from('items').insert({
       title: preview.title,
       price: preview.price,
       image_url: preview.image_url,
       product_url: url,
       rotation: randomRotation,
-      seed: randomSeed
+      seed: randomSeed,
+      x: startX, // Save X
+      y: startY  // Save Y
     })
 
     if (error) {
@@ -258,18 +264,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* THE LIST */}
-      {items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16 px-4 md:px-8 mt-16">
-          {items.map((item) => (
-            <CutoutItem
-              key={item.id}
-              item={item}
-              onDelete={() => handleDelete(item.id)}
-            />
-          ))}
-        </div>
-      )}
+      {/* THE CANVAS (Free form area) */}
+      {/* We make this container HUGE so you can drag items far down */}
+      <div className="relative w-full h-[200vh] border-t-4 border-dashed border-black/10 mt-12">
+        <p className="absolute top-4 left-1/2 -translate-x-1/2 text-slate-400 font-title opacity-50 pointer-events-none">
+          (Drag items anywhere to arrange your board)
+        </p>
+
+        {items.map((item) => (
+          <CutoutItem
+            key={item.id}
+            item={item}
+            onDelete={() => handleDelete(item.id)}
+          />
+        ))}
+      </div>
 
       {items.length === 0 && !loading && (
         <p className="text-center text-3xl text-slate-400 mt-12 rotate-[-2deg] font-title opacity-70">
