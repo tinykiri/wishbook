@@ -9,7 +9,7 @@ const uglyFont = Covered_By_Your_Grace({
 });
 
 export const metadata: Metadata = {
-  title: "My WishList ✂️",
+  title: "My WishList",
   description: "A messy, hand-made wish list.",
 };
 
