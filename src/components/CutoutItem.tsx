@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Draggable from 'react-draggable';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { createClient } from '@/src/lib/supabase/client';
 
 function generateClipPath(seed: number) {
@@ -44,40 +44,84 @@ export default function CutoutItem({ item, onDelete }: ItemProps) {
   const nodeRef = useRef(null);
   const clipPath = generateClipPath(item.seed);
 
-  // STATE
+  // --- STATE ---
   const [rotation, setRotation] = useState(item.rotation || 0);
   const [scale, setScale] = useState(item.scale || 1);
   const [color, setColor] = useState(
     item.color && item.color.startsWith('#') ? item.color : '#fef08a'
   );
 
-  // Track dragging for link blocking
   const isDraggingRef = useRef(false);
+  const scaleStartRef = useRef(1);
+  const cardCenterRef = useRef({ x: 0, y: 0 });
 
-  // HANDLERS
+
+  // --- POSITION DRAG HANDLERS ---
+  const handleStart = () => {
+    isDraggingRef.current = true;
+    // Calculate center for rotation/scale handlers when drag starts
+    const rect = nodeRef.current.getBoundingClientRect();
+    cardCenterRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  };
+
   const handleStop = async (e: any, data: any) => {
     isDraggingRef.current = false;
     await supabase.from('items').update({ x: data.x, y: data.y }).eq('id', item.id);
   };
 
-  const handleStart = () => {
-    isDraggingRef.current = true;
+
+  // --- ROTATION HANDLERS (Manual Drag on Handle) ---
+  const handleRotateStart = (e) => {
+    e.stopPropagation();
+    document.addEventListener('mousemove', handleRotateDrag);
+    document.addEventListener('mouseup', handleRotateStop);
   };
 
-  const handleRotationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRotation(parseFloat(e.target.value));
-  };
-  const handleRotationSave = async () => {
+  const handleRotateDrag = useCallback((e) => {
+    // We use the last calculated center position
+    const { x: centerX, y: centerY } = cardCenterRef.current;
+
+    // Calculate angle from center to mouse position
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
+    const angleRad = Math.atan2(dy, dx);
+    let newRotation = angleRad * (180 / Math.PI) + 90; // Adjust for 0 being up
+
+    if (newRotation > 180) newRotation -= 360;
+    if (newRotation < -180) newRotation += 360;
+
+    setRotation(newRotation);
+  }, []);
+
+  const handleRotateStop = async () => {
+    document.removeEventListener('mousemove', handleRotateDrag);
+    document.removeEventListener('mouseup', handleRotateStop);
     await supabase.from('items').update({ rotation: rotation }).eq('id', item.id);
   };
 
-  const handleScaleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setScale(parseFloat(e.target.value));
+  // --- SCALE HANDLERS (Manual Drag on Handle) ---
+  const handleScaleStart = (e) => {
+    e.stopPropagation();
+    scaleStartRef.current = scale;
+    document.addEventListener('mousemove', handleScaleDrag);
+    document.addEventListener('mouseup', handleScaleStop);
   };
-  const handleScaleSave = async () => {
+
+  const handleScaleDrag = useCallback((e) => {
+    const deltaY = (e.movementY / 200);
+    let newScale = scale + deltaY;
+
+    newScale = Math.min(2.0, Math.max(0.5, newScale));
+    setScale(newScale);
+  }, [scale]);
+
+  const handleScaleStop = async () => {
+    document.removeEventListener('mousemove', handleScaleDrag);
+    document.removeEventListener('mouseup', handleScaleStop);
     await supabase.from('items').update({ scale: scale }).eq('id', item.id);
   };
 
+  // --- INTERACTION HANDLERS ---
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setColor(e.target.value);
   };
@@ -98,56 +142,24 @@ export default function CutoutItem({ item, onDelete }: ItemProps) {
       defaultPosition={{ x: item.x || 0, y: item.y || 0 }}
       onStart={handleStart}
       onStop={handleStop}
+      onDrag={() => isDraggingRef.current = true}
       bounds="parent"
-      cancel=".no-drag" // Don't drag if clicking tools
+      cancel=".no-drag"
     >
-      {/* THE PARENT WRAPPER (This is the "group") 
-         It holds both the Toolbox and the Card so hovering works on both.
-      */}
       <div
         ref={nodeRef}
         className="absolute z-10 font-body hover:z-50 w-72 group"
         style={{ position: 'absolute' }}
       >
 
-        {/* === TOOLBOX === */}
-        {/* Now inside the group, so it appears when you hover ANY part of this Draggable */}
+        {/* === TOOLBOX (Floating Above Title - Color/Trash) === */}
         <div
-          className="no-drag absolute -top-48 left-1/2 -translate-x-1/2 bg-white border-2 border-slate-800 rounded-xl shadow-xl p-3 flex flex-col gap-3 opacity-0 group-hover:opacity-100 transition-opacity z-[9999] pointer-events-auto w-52 cursor-default"
-          onMouseDown={(e) => e.stopPropagation()} // Stop drag when clicking tool
+          className="no-drag absolute -top-16 left-1/2 -translate-x-1/2 bg-white border-2 border-slate-800 rounded-lg shadow-xl p-2 flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity z-[9999] pointer-events-auto w-40 cursor-default"
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          {/* Rotation */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 w-8">Rot:</span>
-            <input
-              type="range"
-              min="-45" max="45"
-              value={rotation}
-              onChange={handleRotationChange}
-              onMouseUp={handleRotationSave}
-              onTouchEnd={handleRotationSave}
-              className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-800"
-            />
-          </div>
-
-          {/* Scale */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 w-8">Size:</span>
-            <input
-              type="range"
-              min="0.5" max="1.5" step="0.1"
-              value={scale}
-              onChange={handleScaleChange}
-              onMouseUp={handleScaleSave}
-              onTouchEnd={handleScaleSave}
-              className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-800"
-            />
-          </div>
-
-          {/* Color */}
-          <div className="flex items-center gap-2 border-t border-slate-100 pt-2">
-            <span className="text-xs font-bold text-slate-500 w-8">Color:</span>
-            <div className="flex-1 h-8 relative rounded overflow-hidden border border-slate-300 cursor-pointer">
+          {/* Color Picker */}
+          <div className="flex items-center flex-1">
+            <div className="h-8 relative rounded overflow-hidden border border-slate-300 cursor-pointer w-full">
               <input
                 type="color"
                 value={color}
@@ -158,31 +170,53 @@ export default function CutoutItem({ item, onDelete }: ItemProps) {
             </div>
           </div>
 
-          {/* Delete */}
+          {/* Delete Button */}
           <button
             onClick={(e) => { e.stopPropagation(); if (confirm('Rip this page out?')) onDelete(); }}
-            className="w-full text-red-500 font-bold hover:text-red-700 text-xs bg-red-50 px-2 py-1 rounded border-t border-slate-100 pt-2 mt-1 cursor-pointer"
+            className="text-red-500 font-bold hover:text-red-700 text-xs bg-red-50 px-2 py-1 rounded cursor-pointer"
           >
-            TRASH CAN
+            TRASH
           </button>
 
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r-2 border-b-2 border-slate-800 transform rotate-45"></div>
         </div>
 
 
-        {/* === VISUAL LAYER (Rotation & Scale) === */}
-        {/* Only this part rotates. The toolbox above stays straight. */}
+        {/* === ROTATABLE/SCALABLE CONTENT === */}
         <div
-          className="relative cursor-grab active:cursor-grabbing"
+          className="relative group cursor-grab active:cursor-grabbing"
           style={{
             transform: `rotate(${rotation}deg) scale(${scale})`,
             transformOrigin: 'center center',
             transition: 'transform 0.1s ease-out'
           }}
         >
-          {/* TAPE HANDLE */}
+          {/* --- VISUAL HANDLES (Only visible on hover) --- */}
+
+          {/* 1. ROTATION HANDLE (Top Left Corner) */}
           <div
-            className="absolute -top-10 left-1/2 -translate-x-1/2 w-40 h-10 z-[60] flex items-center justify-center hover:scale-105 transition-transform"
+            className="no-drag absolute -top-4 -left-4 w-8 h-8 rounded-full border-2 border-slate-800 bg-white/80 shadow-lg cursor-grab opacity-0 group-hover:opacity-100 z-[999] flex items-center justify-center text-lg text-slate-800 hover:bg-slate-200 transition-opacity"
+            onMouseDown={handleRotateStart}
+            onTouchStart={handleRotateStart}
+            style={{ transform: `rotate(-${rotation}deg)` }} // Counter-rotate icon
+          >
+            ↻
+          </div>
+
+          {/* 2. SCALE HANDLE (Bottom Right Corner) */}
+          <div
+            className="no-drag absolute -bottom-4 -right-4 w-8 h-8 rounded-full border-2 border-slate-800 bg-white/80 shadow-lg cursor-nwse-resize opacity-0 group-hover:opacity-100 z-[999] flex items-center justify-center text-xl text-slate-800 hover:bg-slate-200 transition-opacity"
+            onMouseDown={handleScaleStart}
+            onTouchStart={handleScaleStart}
+            style={{ transform: `rotate(-${rotation}deg)` }} // Counter-rotate icon
+          >
+            ⇱
+          </div>
+
+
+          {/* TAPE HANDLE (Draggable tape) */}
+          <div
+            className="absolute -top-10 left-1/2 -translate-x-1/2 w-40 h-10 z-[60] flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
             style={{
               background: 'linear-gradient(45deg, rgba(254, 240, 138, 0.9), rgba(253, 224, 71, 0.9))',
               clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)',
