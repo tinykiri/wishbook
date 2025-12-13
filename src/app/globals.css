@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-ugly: var(--font-ugly), cursive;
+  /* <--- UPDATE THIS LINE TO POINT TO MANSALVA */
+  --font-mansalva: var(--font-mansalva), cursive; 
+  
   --color-paper: #fcfaf2;
   --color-crayon-red: #e65a5a;
   --color-crayon-green: #27ae60;
@@ -29,13 +31,18 @@
       auto;
     
     background-attachment: local;
-    font-family: var(--font-ugly);
+    
+    /* <--- APPLY FONT HERE */
+    font-family: var(--font-mansalva);
+    
     font-size: 1.8rem;
     color: #333;
     min-height: 100vh;
-    overflow-x: hidden; /* Prevents horizontal scroll from wobbly borders */
+    overflow-x: hidden; 
   }
 }
+
+/* ... keep the rest of your CSS (frames, text-crayon-red, etc.) the same ... */
 
 /* THE CRAYON FRAME */
 .crayon-frame {
@@ -68,11 +75,9 @@
 
 /* UTILITY CLASS FOR CRAYON TEXT */
 .text-crayon-red {
-  /* This applies the waxy texture image INSIDE the text letters */
   background-image: var(--pattern-crayon-red);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  /* Adds a subtle shadow so it looks pressed onto the paper */
   filter: drop-shadow(1px 1px 1px rgba(230, 90, 90, 0.5));
 }

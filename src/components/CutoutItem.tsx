@@ -67,10 +67,11 @@ interface ItemProps {
   onDelete?: () => void;
   onUpdate?: (id: string, updates: Partial<ItemProps['item']>) => void;
   canvasScale?: number;
-  readOnly?: boolean; // <--- NEW: READ ONLY MODE
+  readOnly?: boolean;
+  boardWidth?: number; // <--- NEW PROP
 }
 
-export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, readOnly = false }: ItemProps) {
+export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, readOnly = false, boardWidth }: ItemProps) {
   const supabase = createClient();
   const nodeRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -102,7 +103,7 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
   useEffect(() => { if (item.color) setColor(item.color); }, [item.color]);
   useEffect(() => { if (item.drawings) setDrawings(item.drawings); }, [item.drawings]);
 
-  // --- RENDERER ---
+  // --- DRAWING RENDERER ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -173,29 +174,9 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
     return { x, y };
   };
 
-  const startDrawing = (e: any) => {
-    if (!isDrawingMode || readOnly) return;
-    e.preventDefault(); e.stopPropagation();
-    const pos = getCursorPosition(e);
-    setCurrentPath([pos]);
-  };
-
-  const draw = (e: any) => {
-    if (!isDrawingMode || currentPath.length === 0 || readOnly) return;
-    e.preventDefault(); e.stopPropagation();
-    const pos = getCursorPosition(e);
-    setCurrentPath(prev => [...prev, pos]);
-  };
-
-  const stopDrawing = async () => {
-    if (!isDrawingMode || currentPath.length === 0 || readOnly) return;
-    const width = penColor === 'erase' ? eraserSize : penWidth;
-    const newPathObj = { points: currentPath, color: penColor, width: width };
-    const newDrawings = [...drawings, newPathObj];
-    setDrawings(newDrawings);
-    setCurrentPath([]);
-    await supabase.from('items').update({ drawings: newDrawings }).eq('id', item.id);
-  };
+  const startDrawing = (e: any) => { if (!isDrawingMode || readOnly) return; e.preventDefault(); e.stopPropagation(); const pos = getCursorPosition(e); setCurrentPath([pos]); };
+  const draw = (e: any) => { if (!isDrawingMode || currentPath.length === 0 || readOnly) return; e.preventDefault(); e.stopPropagation(); const pos = getCursorPosition(e); setCurrentPath(prev => [...prev, pos]); };
+  const stopDrawing = async () => { if (!isDrawingMode || currentPath.length === 0 || readOnly) return; const width = penColor === 'erase' ? eraserSize : penWidth; const newPathObj = { points: currentPath, color: penColor, width: width }; const newDrawings = [...drawings, newPathObj]; setDrawings(newDrawings); setCurrentPath([]); await supabase.from('items').update({ drawings: newDrawings }).eq('id', item.id); };
 
   const toggleEraser = () => { if (penColor === 'erase') { setPenColor(lastPenColor); } else { setLastPenColor(penColor); setPenColor('erase'); } };
   const handleReCut = async (e: any) => { e.stopPropagation(); const newSeed = Math.floor(Math.random() * 10000); setLocalSeed(newSeed); await supabase.from('items').update({ seed: newSeed }).eq('id', item.id); };
@@ -218,16 +199,16 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
   const handleScaleStart = (e: any) => { if (readOnly) return; e.preventDefault(); e.stopPropagation(); setIsInteracting(true); const clientY = e.clientY || e.touches?.[0]?.clientY; dragStartData.current.scale = scale; dragStartData.current.mouseY = clientY; window.addEventListener('mousemove', handleScaleDrag); window.addEventListener('mouseup', handleScaleStop); window.addEventListener('touchmove', handleScaleDrag); window.addEventListener('touchend', handleScaleStop); };
   const handleScaleDrag = (e: any) => { const clientY = e.clientY || e.touches?.[0]?.clientY; if (!clientY) return; const deltaY = (clientY - dragStartData.current.mouseY) / 200; let newScale = dragStartData.current.scale + deltaY; newScale = Math.min(2.0, Math.max(0.5, newScale)); setScale(newScale); scaleRef.current = newScale; };
   const handleScaleStop = async () => { setIsInteracting(false); window.removeEventListener('mousemove', handleScaleDrag); window.removeEventListener('mouseup', handleScaleStop); window.removeEventListener('touchmove', handleScaleDrag); window.removeEventListener('touchend', handleScaleStop); const cleanScale = parseFloat(scaleRef.current.toFixed(3)); supabase.from('items').update({ scale: cleanScale }).eq('id', item.id).then(); if (onUpdate) onUpdate(item.id, { scale: cleanScale }); };
+  const handleLinkClick = (e: React.MouseEvent) => { if (!readOnly && (isDraggingRef.current || isDrawingMode)) e.preventDefault(); };
 
-  const handleLinkClick = (e: React.MouseEvent) => {
-    // If ReadOnly: ALLOW click (navigate).
-    // If Editing: BLOCK click if dragging/drawing.
-    if (!readOnly && (isDraggingRef.current || isDrawingMode)) {
-      e.preventDefault();
-    }
-  };
+  // --- BOUNDS LOGIC ---
+  // If boardWidth is known, set exact limits. Otherwise default to 'parent'.
+  // We use 300px as approximate card width buffer.
+  const bounds = boardWidth
+    ? { left: 0, top: 0, right: boardWidth - 250, bottom: 50000 } // <--- VERTICAL FREEDOM
+    : 'parent';
 
-  const isMobile = canvasScale < 1;
+  const isMobile = canvasScale < 0.75;
   const toolsClass = isMobile ? `opacity-100` : `opacity-0 group-hover:opacity-100`;
 
   return (
@@ -238,48 +219,26 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
       scale={canvasScale}
       onStart={handleStart}
       onStop={handleStop}
-      bounds="parent"
+      bounds={bounds}
       cancel=".no-drag"
-      disabled={isDrawingMode || readOnly} // Disable Draggable if ReadOnly
+      disabled={isDrawingMode || readOnly}
     >
       <div
         ref={nodeRef}
         className={`absolute w-72 font-body group select-none ${isInteracting || isDrawingMode ? 'z-[9999]' : 'z-10 hover:z-50'}`}
         style={{ position: 'absolute' }}
       >
-        <div
-          className="relative group"
-          style={{
-            transform: `rotate(${rotation}deg) scale(${scale})`,
-            transformOrigin: 'center center',
-            transition: isInteracting ? 'none' : 'transform 0.1s ease-out'
-          }}
-        >
-          {/* DRAG TAPE - Hide if Drawing OR ReadOnly */}
+        <div className="relative group" style={{ transform: `rotate(${rotation}deg) scale(${scale})`, transformOrigin: 'center center', transition: isInteracting ? 'none' : 'transform 0.1s ease-out' }}>
           {!isDrawingMode && !readOnly && (
-            <div
-              className="drag-handle absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-10 z-[100] flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
-              style={{
-                background: 'linear-gradient(45deg, rgba(254, 240, 138, 0.95), rgba(253, 224, 71, 0.95))',
-                clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                touchAction: 'none'
-              }}
-            >
+            <div className="drag-handle absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-10 z-[100] flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-105 transition-transform" style={{ background: 'linear-gradient(45deg, rgba(254, 240, 138, 0.95), rgba(253, 224, 71, 0.95))', clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', touchAction: 'none' }}>
               <span className="text-[10px] font-bold text-yellow-900/30 uppercase tracking-widest pointer-events-none">DRAG ME</span>
             </div>
           )}
-
-          {/* TOOLBOX - Completely HIDDEN if ReadOnly */}
           {!readOnly && (
-            <div
-              className={`no-drag absolute bottom-[85px] left-1/2 -translate-x-1/2 bg-white border-2 border-slate-800 rounded-lg shadow-xl p-1.5 flex gap-2 transition-opacity z-[9999] pointer-events-auto cursor-default ${toolsClass}`}
-              onMouseDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-            >
+            <div className={`no-drag absolute bottom-[85px] left-1/2 -translate-x-1/2 bg-white border-2 border-slate-800 rounded-lg shadow-xl p-1.5 flex gap-2 transition-opacity z-[9999] pointer-events-auto cursor-default ${toolsClass}`} onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
               {isDrawingMode ? (
                 <div className="flex items-center gap-2">
-                  <button onClick={toggleEraser} className={`w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center bg-white ${penColor === 'erase' ? 'ring-2 ring-slate-400' : ''}`} title={penColor === 'erase' ? "Switch to Pen" : "Eraser"}>🧹</button>
+                  <button onClick={toggleEraser} className={`w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center bg-white ${penColor === 'erase' ? 'ring-2 ring-slate-400' : ''}`}>🧹</button>
                   <input type="range" min={penColor === 'erase' ? "10" : "1"} max={penColor === 'erase' ? "50" : "20"} value={penColor === 'erase' ? eraserSize : penWidth} onChange={(e) => penColor === 'erase' ? setEraserSize(Number(e.target.value)) : setPenWidth(Number(e.target.value))} className="w-16 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
                   <div className="w-[1px] bg-slate-200 h-4 mx-1"></div>
                   {penColor !== 'erase' && (
@@ -295,8 +254,8 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
                 <>
                   <div className="w-6 h-6 relative rounded overflow-hidden border border-slate-300 cursor-pointer" style={{ backgroundColor: color }}><input type="color" value={color} onChange={handleColorChange} onBlur={handleColorSave} className="absolute -top-2 -left-2 w-[200%] h-[200%] cursor-pointer opacity-0" /></div>
                   <div className="w-[1px] bg-slate-200 mx-1"></div>
-                  <button onClick={(e) => { e.stopPropagation(); setIsDrawingMode(true); }} className="p-1 rounded hover:bg-slate-100 text-slate-600" title="Draw (Crayon)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg></button>
-                  <button onClick={handleReCut} className="p-1 rounded hover:bg-slate-100 text-slate-600" title="Re-Cut Shape"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg></button>
+                  <button onClick={(e) => { e.stopPropagation(); setIsDrawingMode(true); }} className="p-1 rounded hover:bg-slate-100 text-slate-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg></button>
+                  <button onClick={handleReCut} className="p-1 rounded hover:bg-slate-100 text-slate-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg></button>
                   <div className="w-[1px] bg-slate-200 mx-1"></div>
                   <button onClick={(e) => { e.stopPropagation(); if (confirm('Rip this page out?')) onDelete?.(); }} className="text-red-500 font-bold hover:text-red-700 text-[10px] bg-red-50 px-2 py-1 rounded cursor-pointer leading-none border border-red-100">TRASH</button>
                 </>
@@ -304,47 +263,26 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r-2 border-b-2 border-slate-800 transform rotate-45"></div>
             </div>
           )}
-
-          {/* HANDLES - Hidden if Drawing OR ReadOnly */}
           {!isDrawingMode && !readOnly && (
             <>
               <div className={`no-drag absolute -top-5 -left-5 w-9 h-9 rounded-full border-2 border-slate-800 bg-white shadow-md cursor-grab z-[999] flex items-center justify-center text-lg text-slate-800 hover:bg-slate-100 transition-opacity ${toolsClass}`} onMouseDown={handleRotateStart} onTouchStart={handleRotateStart} style={{ transform: `rotate(-${rotation}deg)`, touchAction: 'none' }}>↻</div>
               <div className={`no-drag absolute -bottom-5 -right-5 w-9 h-9 rounded-full border-2 border-slate-800 bg-white shadow-md cursor-nwse-resize z-[999] flex items-center justify-center text-xl text-slate-800 hover:bg-slate-100 transition-opacity ${toolsClass}`} onMouseDown={handleScaleStart} onTouchStart={handleScaleStart} style={{ transform: `rotate(-${rotation}deg)`, touchAction: 'none' }}>⇱</div>
             </>
           )}
-
           <div className="relative">
-            <canvas
-              ref={canvasRef}
-              className={`absolute inset-0 z-40 ${isDrawingMode ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'}`}
-              style={{ clipPath: clipPath, width: '100%', height: '100%' }}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
-            />
+            <canvas ref={canvasRef} className={`absolute inset-0 z-40 ${isDrawingMode ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'}`} style={{ clipPath: clipPath, width: '100%', height: '100%' }} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
             <div className="absolute inset-0 bg-black/20 blur-[2px]" style={{ clipPath: clipPath, transform: 'scale(1.02) translateY(2px)' }}></div>
-
             <Link href={item.product_url} target="_blank" className={`block relative select-none ${isDrawingMode ? 'cursor-crosshair' : 'cursor-pointer'}`} draggable="false" onClick={handleLinkClick}>
               <div className="bg-crumpled-paper p-3 shadow-inner relative transition-colors duration-300" style={{ clipPath: clipPath, backgroundColor: color }}>
                 <div className="relative h-56 w-full overflow-hidden bg-white shadow-sm border-[0.5px] border-slate-200/50">
-                  {item.image_url ? (
-                    <img src={item.image_url} alt={item.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-stone-300 font-bold rotate-[-5deg] font-title text-xl">No Photo</div>
-                  )}
+                  {item.image_url ? (<img src={item.image_url} alt={item.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />) : (<div className="flex h-full w-full items-center justify-center text-stone-300 font-bold rotate-[-5deg] font-title text-xl">No Photo</div>)}
                   <div className="absolute inset-0 bg-stone-500/5 mix-blend-multiply pointer-events-none"></div>
                 </div>
                 <div className="p-4 pt-4 pb-6 text-center mt-2 min-h-[5rem] flex flex-col justify-center">
                   <h3 className="text-xl font-title font-bold leading-tight text-stone-800 line-clamp-3 select-none">{item.title}</h3>
                 </div>
-                <div className="absolute bottom-3 right-4 z-30 transform rotate-[-6deg]">
-                  <span className="font-title text-4xl text-crayon-red leading-none block select-none" style={{ opacity: 0.95, mixBlendMode: 'multiply', textShadow: '0px 0px 1px rgba(230, 90, 90, 1), 1px 1px 0px rgba(230, 90, 90, 0.8)' }}>
-                    {item.price}
-                  </span>
+                <div className="absolute bottom-3 right-4 z-30 transform -rotate-6">
+                  <span className="font-title text-4xl text-crayon-red leading-none block select-none" style={{ opacity: 0.95, mixBlendMode: 'multiply', textShadow: '0px 0px 1px rgba(230, 90, 90, 1), 1px 1px 0px rgba(230, 90, 90, 0.8)' }}>{item.price}</span>
                 </div>
               </div>
             </Link>

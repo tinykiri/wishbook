@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Covered_By_Your_Grace } from "next/font/google";
+import { Mansalva } from "next/font/google";
 import "./globals.css";
+import Footer from "@/src/components/Footer"; // <--- IMPORT FOOTER
 
-const uglyFont = Covered_By_Your_Grace({
+const mansalva = Mansalva({
   weight: "400",
   subsets: ["latin"],
-  variable: "--font-ugly",
+  variable: "--font-mansalva",
 });
 
 export const metadata: Metadata = {
@@ -20,12 +21,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${uglyFont.variable} antialiased`}>
+      <body className={`${mansalva.variable} antialiased min-h-screen flex flex-col`}>
 
-        {/* THIS IS THE BORDER FRAME */}
+        {/* THE CRAYON FRAME */}
         <div className="crayon-frame"></div>
 
-        {children}
+        {/* MAIN CONTENT GROWS TO FILL SPACE */}
+        <div className="flex-1">
+          {children}
+        </div>
+
+        {/* FOOTER AT THE BOTTOM */}
+        <Footer />
+
       </body>
     </html>
   );
