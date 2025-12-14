@@ -198,13 +198,28 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
   const handleColorSave = async () => { await supabase.from('items').update({ color: color }).eq('id', item.id); onUpdate?.(item.id, { color: color }); };
 
   const handleStart = () => { if (readOnly) return; isDraggingRef.current = true; setIsInteracting(true); };
-  const handleStop = async (e: any, data: any) => {
+  const handleStop = (e: any, data: any) => {
     if (readOnly) return;
-    isDraggingRef.current = false; setIsInteracting(false);
+
+    isDraggingRef.current = false;
+    setIsInteracting(false);
+
     const cleanX = Math.round(data.x * 10) / 10;
     const cleanY = Math.round(data.y * 10) / 10;
-    const { error } = await supabase.from('items').update({ x: cleanX, y: cleanY }).eq('id', item.id);
-    if (!error && onUpdate) onUpdate(item.id, { x: cleanX, y: cleanY });
+
+    // Create a fire-and-forget async wrapper to satisfy TypeScript
+    const updatePosition = async () => {
+      const { error } = await supabase
+        .from('items')
+        .update({ x: cleanX, y: cleanY })
+        .eq('id', item.id);
+
+      if (!error && onUpdate) {
+        onUpdate(item.id, { x: cleanX, y: cleanY });
+      }
+    };
+
+    updatePosition();
   };
 
   const handleRotateStart = (e: any) => { if (readOnly) return; e.preventDefault(); e.stopPropagation(); setIsInteracting(true); if (nodeRef.current) { const rect = nodeRef.current.getBoundingClientRect(); dragStartData.current.centerX = rect.left + rect.width / 2; dragStartData.current.centerY = rect.top + rect.height / 2; } window.addEventListener('mousemove', handleRotateDrag); window.addEventListener('mouseup', handleRotateStop); window.addEventListener('touchmove', handleRotateDrag); window.addEventListener('touchend', handleRotateStop); };
@@ -332,7 +347,7 @@ export default function CutoutItem({ item, onDelete, onUpdate, canvasScale = 1, 
         <div className="relative group" style={{ transform: `rotate(${rotation}deg) scale(${scale})`, transformOrigin: 'center center', transition: isInteracting ? 'none' : 'transform 0.1s ease-out' }}>
           {!isDrawingMode && !readOnly && (
             <div className="drag-handle absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-10 z-100 flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-105 transition-transform duration-200 hover:delay-150" style={{ background: 'linear-gradient(45deg, rgba(254, 240, 138, 0.95), rgba(253, 224, 71, 0.95))', clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', touchAction: 'none' }}>
-              <span className="text-[10px] font-bold text-yellow-900/30 uppercase tracking-widest pointer-events-none">DRAG ME</span>
+              <span className="text-[10px] font-bold text-yellow-900/60 uppercase tracking-widest pointer-events-none">DRAG ME</span>
             </div>
           )}
           {!readOnly && (
