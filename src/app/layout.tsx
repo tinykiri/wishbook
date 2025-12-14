@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Mansalva } from "next/font/google";
 import "./globals.css";
-import Footer from "@/src/components/Footer"; // <--- IMPORT FOOTER
+import Footer from "@/src/components/Footer";
 
 const mansalva = Mansalva({
   weight: "400",
@@ -26,12 +26,11 @@ export default function RootLayout({
         {/* THE CRAYON FRAME */}
         <div className="crayon-frame"></div>
 
-        {/* MAIN CONTENT GROWS TO FILL SPACE */}
+        {/* MAIN CONTENT*/}
         <div className="flex-1">
           {children}
         </div>
 
-        {/* FOOTER AT THE BOTTOM */}
         <Footer />
 
       </body>

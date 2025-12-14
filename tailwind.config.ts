@@ -9,7 +9,6 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // <--- UPDATE THESE TO MANSALVA
         title: ['var(--font-mansalva)', 'cursive'],
         body: ['var(--font-mansalva)', 'cursive'],
       },

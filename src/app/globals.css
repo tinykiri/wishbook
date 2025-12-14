@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  /* <--- UPDATE THIS LINE TO POINT TO MANSALVA */
   --font-mansalva: var(--font-mansalva), cursive; 
   
   --color-paper: #fcfaf2;
@@ -32,7 +31,6 @@
     
     background-attachment: local;
     
-    /* <--- APPLY FONT HERE */
     font-family: var(--font-mansalva);
     
     font-size: 1.8rem;
@@ -41,8 +39,6 @@
     overflow-x: hidden; 
   }
 }
-
-/* ... keep the rest of your CSS (frames, text-crayon-red, etc.) the same ... */
 
 /* THE CRAYON FRAME */
 .crayon-frame {

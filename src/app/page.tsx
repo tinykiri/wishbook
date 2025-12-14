@@ -21,8 +21,8 @@ export default function Home() {
 
   const [isCheckingUser, setIsCheckingUser] = useState(true)
 
-  // 1. WIDTH CONSTRAINT (Safe Zone)
-  const BOARD_WIDTH = 1200;
+  // WIDTH CONSTRAINT (Safe Zone)
+  const BOARD_WIDTH = 1250;
 
   useEffect(() => {
     const checkUserAndLoad = async () => {
@@ -61,7 +61,6 @@ export default function Home() {
     if (data) setItems(data)
   }
 
-  // --- HANDLERS ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
@@ -115,8 +114,6 @@ export default function Home() {
     const { error } = await supabase.from('items').delete().eq('id', id);
     if (!error) setItems(items.filter(i => i.id !== id));
   }
-
-  console.log(items, "from main")
 
   const handleItemUpdate = (id: string, updates: any) => { /* Update local state */ }
   const triggerFileUpload = () => fileInputRef.current?.click();
@@ -178,7 +175,7 @@ export default function Home() {
           <div className="bg-yellow-200 p-4 md:p-6 pb-6 md:pb-8 relative" style={{ clipPath: 'polygon(2% 0%, 5% 2%, 8% 0%, 12% 2%, 18% 0%, 25% 3%, 35% 0%, 45% 2%, 55% 0%, 65% 3%, 75% 0%, 85% 2%, 92% 0%, 100% 3%, 100% 97%, 95% 100%, 90% 98%, 85% 100%, 75% 97%, 65% 100%, 55% 98%, 45% 100%, 35% 97%, 25% 100%, 15% 97%, 5% 100%, 0% 97%)', backgroundImage: 'repeating-linear-gradient(transparent, transparent 1.9rem, #94a3b8 1.9rem, #94a3b8 2rem)', backgroundAttachment: 'local' }}>
             <h2 className="text-lg md:text-2xl mb-2 md:mb-4 font-title text-slate-700 opacity-90 text-center md:text-left">Paste a link to cut it out:</h2>
             <div className="flex flex-col md:flex-row gap-2 items-stretch">
-              <input type="text" placeholder="Paste link... (we'll try! if not, add manually)" className="flex-1 p-2 bg-white/50 border-b-2 border-slate-400 outline-none font-body text-base md:text-xl placeholder:text-slate-400 focus:bg-white/80 transition-colors rounded-sm" value={url} onChange={(e) => setUrl(e.target.value)} />
+              <input type="text" placeholder="Paste link... (we'll try! if not, add manually)" className="flex-1 p-2 bg-white/50 border-b-2 border-slate-400 outline-none font-body text-base md:text-xl placeholder:text-slate-400 focus:bg-white/80 transition-colors rounded-sm placeholder:text-base" value={url} onChange={(e) => setUrl(e.target.value)} />
               <div className="flex gap-2 h-10 md:h-auto">
                 <button onClick={handleScrape} disabled={loading} className="flex-1 md:flex-none bg-green-600/90 text-white px-6 font-bold hover:cursor-pointer hover:bg-green-700/90 disabled:opacity-50 font-title text-base md:text-lg flex items-center justify-center gap-2 transform hover:-rotate-1 transition-transform shadow-sm" style={{ clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)' }}>
                   <span>{loading ? '...' : 'Cut It!'}</span>
@@ -190,13 +187,13 @@ export default function Home() {
             {preview && (
               <div className="relative mt-6 md:mt-8 -mx-2 md:mx-2 filter drop-shadow-md z-10">
 
-                {/* TAPE (Moved Outside & Fixed) */}
+                {/* TAPE */}
                 <div
                   className="absolute -top-4 left-1/2 w-20 h-6 bg-gray-200/90 -translate-x-1/2 rotate-1 shadow-sm pointer-events-none z-20"
                   style={{ clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)' }}
                 ></div>
 
-                {/* PAPER (Clipped) */}
+                {/* PAPER */}
                 <div
                   className="bg-white p-3 md:p-5 pb-6 relative z-10"
                   style={{ clipPath: 'polygon(1% 0%, 5% 2%, 10% 0%, 15% 2%, 20% 0%, 25% 1%, 30% 0%, 35% 2%, 40% 0%, 45% 1%, 50% 0%, 55% 2%, 60% 0%, 65% 2%, 70% 0%, 75% 2%, 80% 0%, 85% 2%, 90% 0%, 95% 2%, 99% 0%, 100% 5%, 98% 10%, 100% 15%, 98% 20%, 100% 25%, 98% 30%, 100% 35%, 98% 40%, 100% 45%, 98% 50%, 100% 55%, 98% 60%, 100% 65%, 98% 70%, 100% 75%, 98% 80%, 100% 85%, 98% 90%, 100% 95%, 99% 100%, 95% 98%, 90% 100%, 85% 98%, 80% 100%, 75% 98%, 70% 100%, 65% 98%, 60% 100%, 55% 98%, 50% 100%, 45% 98%, 40% 100%, 35% 98%, 30% 100%, 25% 98%, 20% 100%, 15% 98%, 10% 100%, 5% 98%, 1% 100%, 2% 95%, 0% 90%, 2% 85%, 0% 80%, 2% 75%, 0% 70%, 2% 65%, 0% 60%, 2% 55%, 0% 50%, 2% 45%, 0% 40%, 2% 35%, 0% 30%, 2% 25%, 0% 20%, 2% 15%, 0% 10%, 2% 5%)' }}
@@ -229,7 +226,6 @@ export default function Home() {
           (Drag items anywhere to arrange your board)
         </p>
 
-        {/* 2. REVERTED HEIGHT: min-h-screen (so it's "just a little" default height) */}
         <div
           style={{
             width: canvasScale < 1 ? `${BOARD_WIDTH}px` : '100%',
@@ -238,15 +234,18 @@ export default function Home() {
           }}
           className="relative min-h-screen pb-40"
         >
-          {/* 3. SAFE ZONE CONTAINER */}
+          {/* SAFE ZONE CONTAINER */}
           <div
-            className="relative mx-auto h-full"
+            className="relative mx-auto border-4 border-dashed border-red-300/50 rounded-3xl"
             style={{
               width: `${BOARD_WIDTH}px`,
-              borderLeft: '2px dashed rgba(252, 165, 165, 0.5)',
-              borderRight: '2px dashed rgba(252, 165, 165, 0.5)'
+              minHeight: '100vh',
             }}
           >
+            <div className="absolute top-2 right-4 text-red-300/50 font-title uppercase tracking-widest text-sm pointer-events-none">
+              Safe Zone
+            </div>
+
             {items.map((item) => (
               <CutoutItem
                 key={item.id}

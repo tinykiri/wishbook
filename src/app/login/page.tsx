@@ -87,19 +87,62 @@ export default function LoginPage() {
     }
   ]
 
+  const validateEmail = (emailToTest: string) => {
+    const strictEmailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+
+    if (!emailToTest || !strictEmailRegex.test(emailToTest)) {
+      alert("Please enter a valid email address (e.g. name@domain.com).")
+      return false
+    }
+
+    if (emailToTest.trim().toLowerCase() === 'test@test.com') {
+      alert("Nice try! Please use a real email address.")
+      return false
+    }
+
+    return true
+  }
+
   const handleSignUp = async () => {
+    if (!validateEmail(email)) return
+
     setLoading(true)
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) alert(error.message)
     else if (data.session) { router.push('/'); router.refresh(); }
+    else { alert("Check your email to confirm sign up!") }
     setLoading(false)
   }
 
   const handleLogin = async () => {
+    if (!validateEmail(email)) return
+
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) alert(error.message)
     else { router.push('/'); router.refresh(); }
+    setLoading(false)
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert("Please enter your email address first.")
+      return
+    }
+    if (!validateEmail(email)) return
+
+    setLoading(true)
+
+    // Sends a password reset link to the email
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    })
+
+    if (error) {
+      alert(error.message)
+    } else {
+      alert(`If an account exists for ${email}, we have sent a reset link! 📧\n\n(If you don't see it, check your Spam folder or check the spelling).`)
+    }
     setLoading(false)
   }
 
@@ -108,10 +151,10 @@ export default function LoginPage() {
 
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
-      {/* 1. THE CRAYON FRAME */}
+      {/* THE CRAYON FRAME */}
       <div className="crayon-frame fixed inset-0 pointer-events-none z-100" />
 
-      {/* 2. ABOUT BUTTON */}
+      {/* ABOUT BUTTON */}
       <button
         onClick={() => setShowAbout(true)}
         className="fixed top-8 right-8 w-10 h-10 rounded-full bg-white border-2 border-slate-800 text-slate-800 font-title font-bold text-xl shadow-md hover:bg-yellow-100 hover:scale-110 transition-transform flex items-center justify-center z-200 hover:cursor-pointer"
@@ -120,17 +163,17 @@ export default function LoginPage() {
         ?
       </button>
 
-      {/* 3. TITLE */}
+      {/* TITLE */}
       <div className="relative z-30 mb-8 md:mb-12 text-center">
         <h1 className="text-6xl md:text-8xl font-bold font-title leading-tight transform -rotate-3">
           <span className="inline-block mr-3 text-crayon-green" style={{ color: '#27ae60', textShadow: '3px 3px 0px rgba(39, 174, 96, 0.2)', mixBlendMode: 'multiply' }}>My</span>
           <span className="inline-block text-crayon-red" style={{ color: '#e65a5a', textShadow: '3px 3px 0px rgba(230, 90, 90, 0.2)', mixBlendMode: 'multiply' }}>WishList</span>
         </h1>
-        <p className="absolute right-0 top-20 -rotate-6">by <span className="text-crayon-red">tiny.kiri</span></p>
+        <p className="absolute right-0 top-20 -rotate-6">by tiny.kiri</p>
       </div>
 
-      {/* 4. SNEAK PEEK */}
-      <div className="relative w-full max-w-lg h-10 md:h-[200px] mb-[-40px] z-10 pointer-events-none">
+      {/* SNEAK PEEK */}
+      <div className="relative w-full max-w-lg h-10 md:h-50 -mb-10 z-10 pointer-events-none">
         <div className="absolute md:left-28 left-32 -translate-x-1/2 -top-24 md:-top-24 scale-[0.5] md:scale-100 origin-center pointer-events-auto hover:z-50 transition-all hover:scale-105 duration-200 transform -rotate-2">
           <CutoutItem item={previewItems[2]} readOnly={true} />
         </div>
@@ -148,8 +191,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 5. LOGIN FORM */}
-      {/* ADDED: scale-90 for mobile to make it smaller */}
+      {/* LOGIN FORM */}
       <div className="relative w-full max-w-sm mt-8 md:mt-0 z-20 transform rotate-1 transition-transform hover:rotate-0 scale-90 md:scale-100 origin-center">
         <div
           className="absolute -top-5 left-1/2 -translate-x-1/2 w-32 h-10 bg-white/90 shadow-sm -rotate-2deg z-30"
@@ -157,7 +199,6 @@ export default function LoginPage() {
         ></div>
 
         <div
-          // CHANGED: p-6 on mobile (was p-8) for a tighter fit
           className="bg-yellow-200 p-6 md:p-10 shadow-2xl relative"
           style={{
             clipPath: 'polygon(2% 0%, 5% 2%, 8% 0%, 12% 2%, 18% 0%, 25% 3%, 35% 0%, 45% 2%, 55% 0%, 65% 3%, 75% 0%, 85% 2%, 92% 0%, 100% 3%, 100% 97%, 95% 100%, 90% 98%, 85% 100%, 75% 97%, 65% 100%, 55% 98%, 45% 100%, 35% 97%, 25% 100%, 15% 97%, 5% 100%, 0% 97%)',
@@ -171,26 +212,47 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <input className="w-full bg-white/50 border-b-2 border-slate-400 p-3 outline-none focus:bg-white/80 transition-colors font-body text-lg placeholder:text-slate-400" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <input className="w-full bg-white/50 border-b-2 border-slate-400 p-3 outline-none focus:bg-white/80 transition-colors font-body text-lg placeholder:text-slate-400" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <div className="relative">
+              <input className="w-full bg-white/50 border-b-2 border-slate-400 p-3 outline-none focus:bg-white/80 transition-colors font-body text-lg placeholder:text-slate-400" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              {/* FORGOT PASSWORD LINK */}
+              <button
+                onClick={handleForgotPassword}
+                className="absolute right-0 -bottom-6 text-xs text-slate-500 font-title hover:text-blue-600 hover:underline transition-colors"
+                type="button"
+              >
+                Forgot Password?
+              </button>
+            </div>
           </div>
 
-          <div className="flex gap-3 mt-8 font-title">
+          <div className="flex gap-3 mt-10 font-title">
             <button onClick={handleLogin} disabled={loading} className="flex-1 bg-green-600/90 hover:cursor-pointer text-white p-3 font-bold text-xl hover:bg-green-700/90 shadow-sm flex items-center justify-center transform hover:scale-105 transition-all" style={{ clipPath: 'polygon(3% 0%, 100% 2%, 97% 100%, 0% 98%)' }}>{loading ? '...' : 'Log In'}</button>
             <button onClick={handleSignUp} disabled={loading} className="flex-1 bg-white/50 hover:cursor-pointer text-slate-700 border-2 border-slate-400 p-3 font-bold text-xl hover:bg-white hover:text-slate-900 transform hover:rotate-1 transition-transform shadow-sm rounded-sm">Sign Up</button>
+          </div>
+
+          {/* DESKTOP WARNING */}
+          <div className="mt-4 text-center">
+            <span className="font-title text-red-500 text-sm font-bold opacity-80 inline-block transform -rotate-2">
+              (You can register here, but you'll need a desktop to create!)
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 6. CREATOR BADGE */}
+      {/* CREATOR BADGE */}
       <div className="mt-24 md:mt-12 z-20">
-        <div className="bg-[#f8f9fa] border border-slate-200 shadow-md p-3 pr-5 rounded-sm flex items-center gap-4 transform rotate-2 hover:rotate-0 transition-transform duration-200 relative max-w-[300px]">
+        <div className="bg-[#f8f9fa] border border-slate-200 shadow-md p-3 pr-5 rounded-sm flex items-center gap-4 transform rotate-2 hover:rotate-0 transition-transform duration-200 relative max-w-75">
 
           {/* Tape */}
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 bg-blue-200/80 shadow-sm -rotate-2" style={{ clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)' }}></div>
 
           {/* Avatar */}
-          <div className="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden shrink-0">
-            <img src={tinyKiriImg.src} alt="Tiny Kiri" className="w-full h-full object-cover" />
+          <div className="w-14 h-14 shrink-0 transform -rotate-3">
+            <img
+              src={tinyKiriImg.src}
+              alt="Tiny Kiri"
+              className="w-full h-full object-contain drop-shadow-sm"
+            />
           </div>
 
           {/* Info */}

@@ -13,14 +13,13 @@ export default function TermsPage() {
         <span className="text-crayon-red">Terms</span> & <span className="text-slate-600">Stuff</span>
       </h1>
 
-      {/* WRAPPER: Holds both Tape and Paper together */}
+      {/* WRAPPER */}
       <div className="max-w-3xl mx-auto relative transform rotate-1">
 
-        {/* TAPE: Now outside the clipped paper div so it is visible */}
+        {/* TAPE*/}
         <div
-          className="absolute -top-5 left-1/2 -translate-x-1/2 w-40 h-10 bg-yellow-200/90 shadow-sm rotate-[-2deg] z-20"
+          className="absolute -top-5 left-1/2 -translate-x-1/2 w-40 h-10 bg-yellow-200/90 shadow-sm -rotate-2 z-20"
           style={{
-            // Added jagged edges to make it look like real tape
             clipPath: 'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)'
           }}
         ></div>
