@@ -169,7 +169,7 @@ export default function LoginPage() {
           <span className="inline-block mr-3 text-crayon-green" style={{ color: '#27ae60', textShadow: '3px 3px 0px rgba(39, 174, 96, 0.2)', mixBlendMode: 'multiply' }}>My</span>
           <span className="inline-block text-crayon-red" style={{ color: '#e65a5a', textShadow: '3px 3px 0px rgba(230, 90, 90, 0.2)', mixBlendMode: 'multiply' }}>WishList</span>
         </h1>
-        <p className="absolute right-0 top-20 -rotate-6">by tiny.kiri</p>
+        <p className="absolute md:top-20 top-12 right-0 -rotate-6">by tiny.kiri</p>
       </div>
 
       {/* SNEAK PEEK */}
@@ -183,7 +183,7 @@ export default function LoginPage() {
         <div className="absolute top-80 right-40 md:right-32 md:bottom-16 md:top-auto scale-[0.5] md:scale-100 origin-center pointer-events-auto hover:z-50 transition-all hover:scale-105 duration-200 transform rotate-6">
           <CutoutItem item={previewItems[1]} readOnly={true} />
         </div>
-        <div className="absolute -top-20 left-64 md:-top-10 md:left-72 scale-[0.5] md:scale-100 origin-center pointer-events-auto hover:z-50 transition-all hover:scale-105 duration-200 transform -rotate-2">
+        <div className="absolute -top-10 left-64 md:-top-10 md:left-72 scale-[0.5] md:scale-100 origin-center pointer-events-auto hover:z-50 transition-all hover:scale-105 duration-200 transform -rotate-2">
           <CutoutItem item={previewItems[3]} readOnly={true} />
         </div>
         <div className="absolute top-80 right-80 md:bottom-20 md:top-auto md:-left-32 scale-[0.5] md:scale-100 origin-center pointer-events-auto hover:z-50 transition-all hover:scale-105 duration-200 transform rotate-2">
@@ -232,7 +232,7 @@ export default function LoginPage() {
 
           {/* DESKTOP WARNING */}
           <div className="mt-4 text-center">
-            <span className="font-title text-red-500 text-sm font-bold opacity-80 inline-block transform -rotate-2">
+            <span className="font-title text-red-500 text-sm font-bold opacity-80 inline-block transform -rotate-2 md:hidden">
               (You can register here, but you'll need a desktop to create!)
             </span>
           </div>
