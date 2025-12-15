@@ -56,9 +56,31 @@ export default function Home() {
       .from('items')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .order('order', { ascending: true })
 
-    if (data) setItems(data)
+    if (data) {
+      const needsOrderInit = data.some((item: any) => item.order === null || item.order === undefined);
+      if (needsOrderInit) {
+        const updates = data.map((item: any, index: number) => ({
+          id: item.id,
+          order: Math.max(0, item.order ?? index)
+        }));
+
+        for (const update of updates) {
+          await supabase.from('items').update({ order: update.order }).eq('id', update.id);
+        }
+
+        const { data: refreshedData } = await supabase
+          .from('items')
+          .select('*')
+          .eq('user_id', userId)
+          .order('order', { ascending: true });
+
+        if (refreshedData) setItems(refreshedData);
+      } else {
+        setItems(data);
+      }
+    }
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,7 +91,7 @@ export default function Home() {
     const { error } = await supabase.storage.from('uploads').upload(fileName, file);
     if (error) { alert('Error: ' + error.message); setLoading(false); return; }
     const { data: publicUrlData } = supabase.storage.from('uploads').getPublicUrl(fileName);
-    setPreview((prev: any) => ({ ...prev, image_url: publicUrlData.publicUrl }));
+    setPreview((prev: any) => ({ ...prev, image_url: publicUrlData.publicUrl, product_url: prev?.product_url || '' }));
     setLoading(false);
   };
 
@@ -78,7 +100,7 @@ export default function Home() {
     try {
       const res = await fetch('/api/scrape', { method: 'POST', body: JSON.stringify({ url }) });
       const data = await res.json();
-      if (data.error) alert("Could not scrape link!"); else setPreview(data);
+      if (data.error) alert("Could not scrape link!"); else setPreview({ ...data, product_url: url });
     } catch { alert("Error scraping"); }
     setLoading(false);
   }
@@ -93,16 +115,29 @@ export default function Home() {
     const startX = BOARD_WIDTH / 2 - 100;
     const startY = 100;
 
+    const { data: existingItems } = await supabase
+      .from('items')
+      .select('order')
+      .eq('user_id', user.id)
+      .order('order', { ascending: false })
+      .limit(1);
+
+    const maxOrder = existingItems && existingItems.length > 0 && existingItems[0].order !== null
+      ? Math.max(0, existingItems[0].order)
+      : -1;
+    const nextOrder = Math.max(0, maxOrder + 1);
+
     const { error } = await supabase.from('items').insert({
       title: preview.title,
       price: preview.price,
       image_url: preview.image_url,
-      product_url: url,
+      product_url: preview.product_url || url || '',
       rotation: Math.random() * 6 - 3,
       scale: 1,
       seed: Math.floor(Math.random() * 1000),
       x: startX,
       y: startY,
+      order: nextOrder,
       user_id: user.id
     });
 
@@ -113,6 +148,25 @@ export default function Home() {
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('items').delete().eq('id', id);
     if (!error) setItems(items.filter(i => i.id !== id));
+  }
+
+  const handleOrderChange = async (id: string, direction: 'up' | 'down') => {
+    const currentItem = items.find(i => i.id === id);
+    if (!currentItem || currentItem.order === null || currentItem.order === undefined) return;
+
+    const currentOrder = Math.max(0, currentItem.order);
+    const targetOrder = direction === 'up' ? currentOrder + 1 : Math.max(0, currentOrder - 1);
+
+    if (targetOrder < 0) return;
+
+    const targetItem = items.find(i => i.order === targetOrder);
+    if (!targetItem) return;
+
+    await supabase.from('items').update({ order: Math.max(0, targetOrder) }).eq('id', id);
+    await supabase.from('items').update({ order: Math.max(0, currentOrder) }).eq('id', targetItem.id);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) fetchItems(user.id);
   }
 
   const handleItemUpdate = (id: string, updates: any) => { /* Update local state */ }
@@ -181,7 +235,7 @@ export default function Home() {
                   <span>{loading ? '...' : 'Cut It!'}</span>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>
                 </button>
-                <button onClick={() => setPreview({ title: '', price: '', image_url: '' })} className="bg-yellow-400 text-yellow-900 px-3 font-bold hover:bg-yellow-500 shadow-sm font-title text-xl rounded-sm flex items-center hover:cursor-pointer" title="Add manually">+</button>
+                <button onClick={() => setPreview({ title: '', price: '', image_url: '', product_url: url })} className="bg-yellow-400 text-yellow-900 px-3 font-bold hover:bg-yellow-500 shadow-sm font-title text-xl rounded-sm flex items-center hover:cursor-pointer" title="Add manually">+</button>
               </div>
             </div>
             {preview && (
@@ -210,7 +264,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="mt-4 border-t border-dashed border-slate-200 pt-3">
-                    <input value={preview.image_url || ''} onChange={(e) => setPreview({ ...preview, image_url: e.target.value })} className="w-full text-[10px] text-slate-400 bg-slate-50 border border-slate-200 p-1.5 rounded focus:border-blue-500 outline-none mb-2 font-body hover:cursor-pointer" placeholder="Or paste image URL here..." />
+                    <input value={preview.product_url || ''} onChange={(e) => setPreview({ ...preview, product_url: e.target.value })} className="w-full text-[10px] text-slate-600 bg-slate-50 border border-slate-200 p-1.5 rounded focus:border-blue-500 outline-none mb-2 font-body hover:cursor-pointer" placeholder="Product link (where to buy)..." />
                     <button onClick={handleSave} className="w-full bg-green-600 text-white px-4 py-1.5 rounded shadow-sm hover:bg-green-700 font-title text-lg flex items-center justify-center gap-2 transform hover:rotate-1 transition-transform"><span>Glue It!</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 22V12a6 6 0 0 0-12 0v10" /><path d="M8 22h8" /><path d="M9 6V2" /><path d="M15 6V2" /><path d="M9 2h6" /><path d="M8 6h8" /><path d="M12 15v3" /><circle cx="12" cy="19" r="1" fill="currentColor" /></svg></button>
                   </div>
                 </div>
@@ -252,6 +306,7 @@ export default function Home() {
                 item={item}
                 onDelete={() => handleDelete(item.id)}
                 onUpdate={handleItemUpdate}
+                onOrderChange={(direction) => handleOrderChange(item.id, direction)}
                 canvasScale={canvasScale}
                 boardWidth={BOARD_WIDTH}
               />
