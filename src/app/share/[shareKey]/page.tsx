@@ -5,10 +5,13 @@ import { createClient } from '@/src/lib/supabase/client'
 import CutoutItem from '@/src/components/CutoutItem'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTheme } from '@/src/contexts/ThemeContext'
+import { DEFAULT_THEME_ID, CUSTOM_THEME_ID } from '@/src/lib/themes'
 
 export default function SharePage() {
   const supabase = createClient()
   const params = useParams()
+  const { setThemeFromId } = useTheme()
 
   const [items, setItems] = useState<any[]>([])
   const [canvasScale, setCanvasScale] = useState(1)
@@ -24,13 +27,22 @@ export default function SharePage() {
 
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, theme, custom_background')
         .eq('share_key', params.shareKey)
         .single();
 
       if (error || !profile) {
         setLoading(false);
         return;
+      }
+
+      // Apply the owner's theme (including custom background if set)
+      if (profile.theme === CUSTOM_THEME_ID && profile.custom_background) {
+        setThemeFromId(CUSTOM_THEME_ID, profile.custom_background);
+      } else if (profile.theme) {
+        setThemeFromId(profile.theme);
+      } else {
+        setThemeFromId(DEFAULT_THEME_ID);
       }
 
       fetchItems(profile.id);
@@ -52,7 +64,7 @@ export default function SharePage() {
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [params])
+  }, [params, setThemeFromId])
 
   const fetchItems = async (realUserId: string) => {
     setLoading(true)
