@@ -6,6 +6,7 @@ import { createClient } from '@/src/lib/supabase/client'
 import CutoutItem from '@/src/components/CutoutItem'
 import MobileBlocker from '@/src/components/MobileBlocker'
 import AboutModal from '@/src/components/AboutModal'
+import ThemeSelector from '@/src/components/ThemeSelector'
 
 export default function Home() {
   const supabase = createClient()
@@ -212,6 +213,7 @@ export default function Home() {
 
       {/* MENU */}
       <div className="fixed top-4 right-4 md:right-8 z-200 flex items-center gap-2 md:gap-3 pointer-events-auto">
+        <ThemeSelector />
         <button onClick={() => setShowAbout(true)} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border-2 border-slate-800 text-slate-800 font-title font-bold text-lg md:text-xl shadow-md hover:bg-yellow-100 hover:scale-110 transition-transform flex items-center justify-center hover:cursor-pointer">?</button>
         <button onClick={handleShare} className="bg-white border-2 border-slate-800 text-slate-800 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-title font-bold hover:bg-green-100 hover:text-green-800 transition-colors shadow-md flex items-center gap-2 text-xs md:text-sm transform hover:rotate-2 hover:cursor-pointer"><span>🔗 Share</span></button>
         <button onClick={handleSignOut} className="bg-red-50 border-2 border-red-200 text-red-400 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-title font-bold hover:bg-red-100 hover:text-red-600 hover:border-red-400 transition-all shadow-sm flex items-center gap-2 text-xs md:text-sm transform hover:-rotate-1 hover:cursor-pointer"><span>Exit ➜</span></button>
