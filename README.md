@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wishbook
 
-## Getting Started
+A home for your wishes — collect, organize, and share the things you're dreaming of.
 
-First, run the development server:
+## Features
+
+- **Browse & search wishes** — filter by status: Granted, In progress, Considering
+- **Add wishes** with a title, category, priority, link, and notes
+- **Priorities & categories** — high / medium / low badges and tags at a glance
+- **Wish details** — status, notes, product link, and added date in one view
+- **Edit wishes** anytime
+- **Lists** — group wishes into curated lists with cover images
+- **Progress tracking** — see how many wishes in a list have been granted
+- **Share lists** with anyone via a link
+- **Ideas** — browse inspiration by category and add to your wishlist in one click
+- **Stats** — wishes collected, lists curated, wishes granted
+
+## Tech stack
+
+Next.js · React · TypeScript · Tailwind CSS · Supabase
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Screenshots
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+![Home](docs/screenshots/home.jpg)
+![Browse wishes](docs/screenshots/browse.jpg)
+![Wish details](docs/screenshots/wish-details.jpg)
+![Add a wish](docs/screenshots/add-wish.jpg)
+![Edit a wish](docs/screenshots/edit-wish.jpg)
+![Lists](docs/screenshots/lists.jpg)
+![List detail](docs/screenshots/list-detail.jpg)
+![Ideas](docs/screenshots/ideas.jpg)
+![Ideas](docs/screenshots/ideas-2.jpg)
+![Ideas](docs/screenshots/ideas-3.jpg)
