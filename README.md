@@ -1,19 +1,14 @@
 # Wishbook
 
-A home for your wishes — collect, organize, and share the things you're dreaming of.
+A scrapbook for your wishes — pin the things you want on a board and share it with friends.
 
 ## Features
 
-- **Browse & search wishes** — filter by status: Granted, In progress, Considering
-- **Add wishes** with a title, category, priority, link, and notes
-- **Priorities & categories** — high / medium / low badges and tags at a glance
-- **Wish details** — status, notes, product link, and added date in one view
-- **Edit wishes** anytime
-- **Lists** — group wishes into curated lists with cover images
-- **Progress tracking** — see how many wishes in a list have been granted
-- **Share lists** with anyone via a link
-- **Ideas** — browse inspiration by category and add to your wishlist in one click
-- **Stats** — wishes collected, lists curated, wishes granted
+- **Add items by link or by hand** — paste a URL and the title, image, and price get pulled in automatically, or fill it in yourself
+- **Style your cards** — pick the shape and color, doodle on them with crayons
+- **Arrange your board** — drag cards wherever you want
+- **Change themes** — switch up the board's background, or use your own photo
+- **Share with friends** — send them a link; they see your board and can click any card to open the item
 
 ## Tech stack
 
